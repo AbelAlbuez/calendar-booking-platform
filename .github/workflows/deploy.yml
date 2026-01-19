@@ -1,22 +1,14 @@
-name: Deploy
+name: Deploy to Docker Hub
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME_API: ${{ github.repository }}/api
-  IMAGE_NAME_WEB: ${{ github.repository }}/web
-
 jobs:
   build-and-push-backend:
     name: Build & Push Backend
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     
     steps:
       - name: Checkout code
@@ -25,18 +17,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      - name: Log in to Container Registry
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       
       - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/calendar-booking-api
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
@@ -61,9 +52,6 @@ jobs:
   build-and-push-frontend:
     name: Build & Push Frontend
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     
     steps:
       - name: Checkout code
@@ -72,18 +60,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      - name: Log in to Container Registry
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       
       - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WEB }}
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/calendar-booking-web
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
@@ -115,12 +102,12 @@ jobs:
         run: |
           echo "🎉 Deployment completed successfully!"
           echo ""
-          echo "📦 Docker images have been built and pushed to GitHub Container Registry"
-          echo "🔗 View images at: https://github.com/${{ github.repository }}/pkgs/container"
+          echo "📦 Docker images have been built and pushed to Docker Hub"
+          echo "🔗 Backend: https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/calendar-booking-api"
+          echo "🔗 Frontend: https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/calendar-booking-web"
           echo ""
-          echo "🚀 Next steps for production deployment:"
-          echo "   1. Pull images from: ghcr.io/${{ github.repository }}/api:latest"
-          echo "   2. Pull images from: ghcr.io/${{ github.repository }}/web:latest"
-          echo "   3. Deploy to your hosting platform (Railway, Render, AWS, etc.)"
+          echo "🚀 Pull commands:"
+          echo "   docker pull ${{ secrets.DOCKERHUB_USERNAME }}/calendar-booking-api:latest"
+          echo "   docker pull ${{ secrets.DOCKERHUB_USERNAME }}/calendar-booking-web:latest"
           echo ""
-          echo "💡 To add automatic deployment, add deployment steps to this workflow"
+          echo "💡 To deploy, use docker-compose.prod.yml with these images"
