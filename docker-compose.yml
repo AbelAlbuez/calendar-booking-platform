@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=file:/data/dev.db
+      - JWT_SECRET=dev-secret-change-in-production
+      - NODE_ENV=development
+      - CORS_ORIGIN=http://localhost:3000
+    volumes:
+      - ./data:/data
+    command: sh -c "npx prisma migrate deploy && npm run start:prod"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
+    depends_on:
+      - api
+
+volumes:
+  data:

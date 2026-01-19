@@ -1,0 +1,60 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  googleId  String?  @unique
+  timezone  String   @default("UTC")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookings     Booking[]
+  googleTokens GoogleToken[]
+
+  @@map("users")
+}
+
+model GoogleToken {
+  id           String   @id @default(uuid())
+  userId       String
+  accessToken  String
+  refreshToken String?
+  expiry       DateTime
+  scope        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@map("google_tokens")
+}
+
+model Booking {
+  id             String   @id @default(uuid())
+  userId         String
+  title          String
+  startUtc       DateTime
+  endUtc         DateTime
+  status         String   @default("Active") // Active | Cancelled
+  googleEventId  String?  // Google Calendar event ID for sync
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([startUtc, endUtc])
+  @@map("bookings")
+}
