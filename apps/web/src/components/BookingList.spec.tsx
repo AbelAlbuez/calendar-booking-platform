@@ -5,6 +5,7 @@ import { BookingDto } from '@calendar-booking/shared';
 
 describe('BookingList', () => {
   const mockOnCancel = jest.fn();
+  const mockOnRefresh = jest.fn();
 
   const mockBookings: BookingDto[] = [
     {
@@ -35,12 +36,11 @@ describe('BookingList', () => {
 
   it('renders empty state when no bookings', () => {
     render(
-      <BookingList bookings={[]} onCancel={mockOnCancel} loading={false} />,
+      <BookingList bookings={[]} onCancel={mockOnCancel} onRefresh={jest.fn()} loading={false} />,
     );
 
-    expect(
-      screen.getByText('No bookings yet. Create your first booking!'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('No bookings yet')).toBeInTheDocument();
+    expect(screen.getByText('Create your first booking to get started!')).toBeInTheDocument();
   });
 
   it('renders all bookings', () => {
@@ -48,6 +48,7 @@ describe('BookingList', () => {
       <BookingList
         bookings={mockBookings}
         onCancel={mockOnCancel}
+        onRefresh={mockOnRefresh}
         loading={false}
       />,
     );
@@ -61,25 +62,34 @@ describe('BookingList', () => {
       <BookingList
         bookings={mockBookings}
         onCancel={mockOnCancel}
+        onRefresh={mockOnRefresh}
         loading={false}
       />,
     );
 
-    const cancelButtons = screen.getAllByText('Cancel');
-    expect(cancelButtons).toHaveLength(2);
+    // Find delete icon buttons by testId
+    const deleteIcons = screen.getAllByTestId('DeleteOutlineIcon');
+    expect(deleteIcons).toHaveLength(2);
   });
 
-  it('triggers cancel action when button clicked', () => {
+  it('triggers cancel action when button clicked', async () => {
     render(
       <BookingList
         bookings={mockBookings}
         onCancel={mockOnCancel}
+        onRefresh={mockOnRefresh}
         loading={false}
       />,
     );
 
-    const cancelButtons = screen.getAllByText('Cancel');
-    fireEvent.click(cancelButtons[0]);
+    // Find delete icon buttons and click the first one
+    const deleteIcons = screen.getAllByTestId('DeleteOutlineIcon');
+    // Click the parent button element
+    fireEvent.click(deleteIcons[0].closest('button')!);
+
+    // The component opens a dialog, so we need to confirm the cancellation
+    const confirmButton = await screen.findByText('Yes, Cancel Booking');
+    fireEvent.click(confirmButton);
 
     expect(mockOnCancel).toHaveBeenCalledWith('1');
   });
@@ -89,12 +99,15 @@ describe('BookingList', () => {
       <BookingList
         bookings={mockBookings}
         onCancel={mockOnCancel}
+        onRefresh={mockOnRefresh}
         loading={true}
       />,
     );
 
-    const cancelButtons = screen.getAllByText('Cancel');
-    cancelButtons.forEach((button) => {
+    // Find delete icon buttons and check their parent buttons are disabled
+    const deleteIcons = screen.getAllByTestId('DeleteOutlineIcon');
+    deleteIcons.forEach((icon) => {
+      const button = icon.closest('button');
       expect(button).toBeDisabled();
     });
   });

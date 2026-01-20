@@ -4,12 +4,14 @@ import { BookingsService } from './bookings.service';
 import { PrismaService } from '@/modules/common/services/prisma.service';
 import { InternalBookingsConflictChecker } from './internal-bookings-conflict-checker.service';
 import { CONFLICT_CHECKER } from '@/modules/calendar/interfaces/conflict-checker.interface';
+import { CalendarService } from '@/modules/calendar/services/calendar.service';
 
 describe('BookingsService', () => {
   let service: BookingsService;
   let prismaService: PrismaService;
   let internalConflictChecker: InternalBookingsConflictChecker;
   let googleConflictChecker: any;
+  let calendarService: CalendarService;
 
   const mockPrismaService = {
     booking: {
@@ -28,6 +30,11 @@ describe('BookingsService', () => {
     checkConflict: jest.fn(),
   };
 
+  const mockCalendarService = {
+    createGoogleCalendarEvent: jest.fn(),
+    deleteGoogleCalendarEvent: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -44,6 +51,10 @@ describe('BookingsService', () => {
           provide: CONFLICT_CHECKER,
           useValue: mockGoogleConflictChecker,
         },
+        {
+          provide: CalendarService,
+          useValue: mockCalendarService,
+        },
       ],
     }).compile();
 
@@ -53,6 +64,7 @@ describe('BookingsService', () => {
       InternalBookingsConflictChecker,
     );
     googleConflictChecker = module.get(CONFLICT_CHECKER);
+    calendarService = module.get<CalendarService>(CalendarService);
 
     // Reset mocks before each test
     jest.clearAllMocks();
@@ -61,13 +73,23 @@ describe('BookingsService', () => {
   describe('createBooking', () => {
     const userId = 'user-123';
     const title = 'Team Meeting';
-    const futureStart = new Date('2025-12-20T14:00:00Z').toISOString();
-    const futureEnd = new Date('2025-12-20T15:00:00Z').toISOString();
+    // Use dates that are always in the future (1 day from now)
+    const getFutureDates = () => {
+      const now = new Date();
+      const futureStart = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 1 day from now
+      const futureEnd = new Date(futureStart.getTime() + 60 * 60 * 1000); // 1 hour later
+      return {
+        futureStart: futureStart.toISOString(),
+        futureEnd: futureEnd.toISOString(),
+      };
+    };
 
     it('should create booking when no conflicts exist', async () => {
+      const { futureStart, futureEnd } = getFutureDates();
       // Mock: no conflicts
       mockInternalConflictChecker.checkConflict.mockResolvedValue(false);
       mockGoogleConflictChecker.checkConflict.mockResolvedValue(false);
+      mockCalendarService.createGoogleCalendarEvent.mockResolvedValue(null);
 
       const mockBooking = {
         id: 'booking-123',
@@ -101,9 +123,16 @@ describe('BookingsService', () => {
         new Date(futureEnd),
       );
       expect(mockPrismaService.booking.create).toHaveBeenCalled();
+      expect(mockCalendarService.createGoogleCalendarEvent).toHaveBeenCalledWith(
+        userId,
+        title,
+        new Date(futureStart),
+        new Date(futureEnd),
+      );
     });
 
     it('should reject booking when internal conflict exists', async () => {
+      const { futureStart, futureEnd } = getFutureDates();
       // Mock: internal conflict found
       mockInternalConflictChecker.checkConflict.mockResolvedValue(true);
 
@@ -117,6 +146,7 @@ describe('BookingsService', () => {
     });
 
     it('should reject booking when Google Calendar conflict exists', async () => {
+      const { futureStart, futureEnd } = getFutureDates();
       // Mock: no internal conflict, but Google Calendar conflict
       mockInternalConflictChecker.checkConflict.mockResolvedValue(false);
       mockGoogleConflictChecker.checkConflict.mockResolvedValue(true);
@@ -131,6 +161,7 @@ describe('BookingsService', () => {
     });
 
     it('should reject booking when Google Calendar check fails (fail-closed)', async () => {
+      const { futureStart, futureEnd } = getFutureDates();
       // Mock: internal check passes, Google check fails
       mockInternalConflictChecker.checkConflict.mockResolvedValue(false);
       mockGoogleConflictChecker.checkConflict.mockRejectedValue(
@@ -145,8 +176,10 @@ describe('BookingsService', () => {
     });
 
     it('should reject booking with invalid time interval (start >= end)', async () => {
-      const invalidStart = new Date('2025-12-20T15:00:00Z').toISOString();
-      const invalidEnd = new Date('2025-12-20T14:00:00Z').toISOString();
+      const { futureStart } = getFutureDates();
+      // Use futureStart as end and a later time as start (invalid)
+      const invalidStart = new Date(new Date(futureStart).getTime() + 60 * 60 * 1000).toISOString();
+      const invalidEnd = futureStart; // end is before start
 
       await expect(
         service.createBooking(userId, title, invalidStart, invalidEnd),
@@ -213,12 +246,14 @@ describe('BookingsService', () => {
         status: 'Active',
         createdAt: new Date(),
         updatedAt: new Date(),
+        googleEventId: null,
       };
 
       const cancelledBooking = { ...mockBooking, status: 'Cancelled' };
 
       mockPrismaService.booking.findUnique.mockResolvedValue(mockBooking);
       mockPrismaService.booking.update.mockResolvedValue(cancelledBooking);
+      mockCalendarService.deleteGoogleCalendarEvent.mockResolvedValue(undefined);
 
       const result = await service.cancelBooking('user-123', 'booking-123');
 
