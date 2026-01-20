@@ -50,7 +50,8 @@ export class GoogleCalendarConflictChecker implements ConflictChecker {
 
       const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-      // Query calendar for events in the time range
+      // Query calendar for events in a broader time range
+      // We'll filter for actual overlaps manually
       const response = await calendar.events.list({
         calendarId: 'primary',
         timeMin: start.toISOString(),
@@ -61,21 +62,49 @@ export class GoogleCalendarConflictChecker implements ConflictChecker {
 
       const events = response.data.items || [];
 
-      // Check if any events exist in this time range
-      if (events.length > 0) {
+      this.logger.log(
+        `Google Calendar returned ${events.length} event(s) in range ${start.toISOString()} - ${end.toISOString()}`,
+      );
+
+      // Filter events to find actual conflicts
+      // Two time ranges overlap if: (start1 < end2) AND (end1 > start2)
+      const conflicts = events.filter((event) => {
+        // Skip events without start/end times (all-day events, etc.)
+        if (!event.start?.dateTime || !event.end?.dateTime) {
+          return false;
+        }
+
+        const eventStart = new Date(event.start.dateTime);
+        const eventEnd = new Date(event.end.dateTime);
+
+        // Check for overlap: (eventStart < bookingEnd) AND (eventEnd > bookingStart)
+        const hasOverlap = eventStart < end && eventEnd > start;
+
+        if (hasOverlap) {
+          this.logger.log(
+            `Conflict detected: "${event.summary}" (${eventStart.toISOString()} - ${eventEnd.toISOString()}) ` +
+            `overlaps with booking (${start.toISOString()} - ${end.toISOString()})`,
+          );
+        }
+
+        return hasOverlap;
+      });
+
+      if (conflicts.length > 0) {
         this.logger.log(
-          `Found ${events.length} Google Calendar event(s) conflicting with ${start} - ${end}`,
+          `Found ${conflicts.length} actual conflict(s) in Google Calendar`,
         );
         return true;
       }
 
+      this.logger.log('No conflicts found in Google Calendar');
       return false;
     } catch (error) {
       this.logger.error(
         `Google Calendar conflict check failed for user ${userId}:`,
         error,
       );
-      // Fail-closed: treat API errors as conflicts
+      
       throw new Error(
         'Failed to check Google Calendar availability - booking not allowed',
       );
