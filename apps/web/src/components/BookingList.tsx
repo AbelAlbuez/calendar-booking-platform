@@ -18,16 +18,18 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EventIcon from '@mui/icons-material/Event';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { BookingDto } from '@calendar-booking/shared';
 
 interface BookingListProps {
   bookings: BookingDto[];
   onCancel: (id: string) => void;
+  onRefresh: () => void;
   loading: boolean;
 }
 
-export function BookingList({ bookings, onCancel, loading }: BookingListProps) {
+export function BookingList({ bookings, onCancel, onRefresh, loading }: BookingListProps) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<BookingDto | null>(null);
 
@@ -102,12 +104,33 @@ export function BookingList({ bookings, onCancel, loading }: BookingListProps) {
         <Typography variant="body2" color="text.secondary">
           Create your first booking to get started!
         </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={onRefresh}
+          disabled={loading}
+          sx={{ mt: 2 }}
+        >
+          Refresh
+        </Button>
       </Paper>
     );
   }
 
   return (
     <>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<RefreshIcon />}
+          onClick={onRefresh}
+          disabled={loading}
+        >
+          Refresh
+        </Button>
+      </Box>
+
       <Stack spacing={2}>
         {bookings.map((booking) => {
           const upcoming = isUpcoming(booking.startUtc);

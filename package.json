@@ -11,7 +11,7 @@
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "cd apps/api && npm run start:dev",
     "dev:web": "cd apps/web && npm run dev",
-    "db:reset": "pkill -f 'nest start' || true && cd apps/api && rm -f prisma/*.db* && rm -rf prisma/migrations && npx prisma migrate dev --name init && cd ../.. && echo '\n✅ Database reset complete!'",
+    "db:reset": "pkill -f 'nest start' || true && cd apps/api && rm -f prisma/*.db* && rm -rf prisma/migrations && rm -rf node_modules/.prisma && rm -rf node_modules/@prisma && npm install @prisma/client prisma && npx prisma generate && npx prisma migrate dev --name init && cd ../.. && echo '\n✅ Database reset complete! Run: npm run dev'",
     "build": "npm run build:shared && npm run build:api && npm run build:web",
     "build:shared": "cd packages/shared && npm run build",
     "build:api": "cd apps/api && npm run build",

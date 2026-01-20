@@ -21,14 +21,14 @@ interface BookingFormProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (dto: CreateBookingDto) => Promise<void>;
-  loading: boolean;
 }
 
-export function BookingForm({ open, onClose, onSubmit, loading }: BookingFormProps) {
+export function BookingForm({ open, onClose, onSubmit }: BookingFormProps) {
   const [title, setTitle] = useState('');
   const [startUtc, setStartUtc] = useState('');
   const [endUtc, setEndUtc] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const handleClose = () => {
@@ -38,6 +38,7 @@ export function BookingForm({ open, onClose, onSubmit, loading }: BookingFormPro
       setEndUtc('');
       setError(null);
       setSuccess(false);
+      setLoading(false);
       onClose();
     }
   };
@@ -79,6 +80,7 @@ export function BookingForm({ open, onClose, onSubmit, loading }: BookingFormPro
     }
 
     try {
+      setLoading(true);
       await onSubmit({
         title: title.trim(),
         startUtc: start.toISOString(),
@@ -93,6 +95,7 @@ export function BookingForm({ open, onClose, onSubmit, loading }: BookingFormPro
       }, 1500);
     } catch (err: any) {
       setError(err.message);
+      setLoading(false);
     }
   };
 

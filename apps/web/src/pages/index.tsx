@@ -1,22 +1,21 @@
+// apps/web/src/pages/index.tsx
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import {
   Container,
   AppBar,
   Toolbar,
   Typography,
-  Button,
   Box,
   Alert,
-  Fab,
-  Snackbar,
-  Avatar,
   IconButton,
   Menu,
   MenuItem,
-  Chip,
+  Avatar,
+  Fab,
+  Snackbar,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import { BookingList } from '@/components/BookingList';
 import { BookingForm } from '@/components/BookingForm';
 import { CalendarStatus } from '@/components/CalendarStatus';
@@ -24,45 +23,38 @@ import { apiService } from '@/services/api.service';
 import { BookingDto, CreateBookingDto } from '@calendar-booking/shared';
 
 export default function Home() {
+  const router = useRouter();
   const [bookings, setBookings] = useState<BookingDto[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      handleDevLogin();
-    } else {
-      loadUserData();
-    }
+    checkAuth();
   }, []);
 
-  const handleDevLogin = async () => {
-    try {
-      const response = await apiService.devLogin(
-        'demo@example.com',
-        'Demo User',
-      );
-      localStorage.setItem('accessToken', response.accessToken);
-      setUser(response.user);
-      loadBookings();
-    } catch (err) {
-      setError('Failed to login');
+  const checkAuth = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      router.push('/login');
+      return;
     }
-  };
 
-  const loadUserData = async () => {
     try {
       const userData = await apiService.getCurrentUser();
       setUser(userData);
       loadBookings();
     } catch (err) {
       localStorage.removeItem('accessToken');
-      handleDevLogin();
+      localStorage.removeItem('user');
+      router.push('/login');
     }
   };
 
@@ -71,7 +63,6 @@ export default function Home() {
       setLoading(true);
       const data = await apiService.getBookings('Active');
       setBookings(data);
-      setError(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load bookings');
     } finally {
@@ -81,46 +72,39 @@ export default function Home() {
 
   const handleCreateBooking = async (dto: CreateBookingDto) => {
     try {
-      setLoading(true);
-      setError(null);
-      await apiService.createBooking(dto);
-      await loadBookings();
-      setSuccessMessage('Booking created successfully!');
+      const newBooking = await apiService.createBooking(dto);
+      setBookings([...bookings, newBooking]);
       setShowForm(false);
+      setSnackbar({
+        open: true,
+        message: 'Booking created successfully!',
+        severity: 'success',
+      });
     } catch (err: any) {
-      const errorData = err.response?.data;
-      if (errorData?.conflictType === 'internal') {
-        throw new Error('⚠️ Time slot conflicts with your existing booking');
-      } else if (errorData?.conflictType === 'google_calendar') {
-        throw new Error('⚠️ Time slot conflicts with your Google Calendar');
-      } else {
-        throw new Error(errorData?.message || 'Failed to create booking');
-      }
-    } finally {
-      setLoading(false);
+      const errorMessage = err.response?.data?.message || 'Failed to create booking';
+      throw new Error(errorMessage);
     }
   };
 
   const handleCancelBooking = async (id: string) => {
     try {
-      setLoading(true);
       await apiService.cancelBooking(id);
-      await loadBookings();
-      setSuccessMessage('Booking cancelled successfully');
-      setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to cancel booking');
-    } finally {
-      setLoading(false);
+      setBookings(bookings.filter((b) => b.id !== id));
+      setSnackbar({
+        open: true,
+        message: 'Booking cancelled successfully!',
+        severity: 'success',
+      });
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: 'Failed to cancel booking',
+        severity: 'error',
+      });
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    window.location.reload();
-  };
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
 
@@ -128,155 +112,101 @@ export default function Home() {
     setAnchorEl(null);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
+
+  const activeBookingsCount = bookings.filter(b => b.status === 'Active').length;
+
   if (!user) {
-    return (
-      <Container maxWidth="sm" sx={{ mt: 4 }}>
-        <Typography variant="h6">Loading...</Typography>
-      </Container>
-    );
+    return null; // Will redirect to login
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* AppBar */}
-      <AppBar position="sticky" elevation={1}>
+    <Box sx={{ flexGrow: 1 }}>
+      <AppBar position="static">
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             📅 Calendar Booking
           </Typography>
-          
-          <Chip
-            label={`${bookings.filter(b => b.status === 'Active').length} Active`}
-            size="small"
-            color="primary"
-            variant="outlined"
-            sx={{ mr: 2, bgcolor: 'rgba(255,255,255,0.1)', color: 'white' }}
-          />
-
-          <IconButton
-            onClick={handleMenuOpen}
-            size="small"
-            sx={{ ml: 2 }}
-            aria-controls={anchorEl ? 'account-menu' : undefined}
-            aria-haspopup="true"
-            aria-expanded={anchorEl ? 'true' : undefined}
-          >
+          <Typography variant="body2" sx={{ mr: 2 }}>
+            {activeBookingsCount} Active
+          </Typography>
+          <IconButton onClick={handleMenuClick} size="small">
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-              {user.name.charAt(0).toUpperCase()}
+              {user?.name?.charAt(0).toUpperCase()}
             </Avatar>
           </IconButton>
-
           <Menu
             anchorEl={anchorEl}
-            id="account-menu"
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
-            onClick={handleMenuClose}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
           >
-            <MenuItem disabled>
-              <Box>
-                <Typography variant="body2" fontWeight="bold">
-                  {user.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {user.email}
-                </Typography>
-              </Box>
-            </MenuItem>
-            <MenuItem onClick={handleLogout}>
-              Logout
-            </MenuItem>
+            <Box sx={{ px: 2, py: 1 }}>
+              <Typography variant="subtitle1">{user?.name}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                {user?.email}
+              </Typography>
+            </Box>
+            <MenuItem onClick={handleLogout}>Logout</MenuItem>
           </Menu>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        {/* Global Error Alert */}
+      <Container maxWidth="md" sx={{ mt: 4 }}>
         {error && (
-          <Alert 
-            severity="error" 
-            sx={{ mb: 3 }} 
-            onClose={() => setError(null)}
-          >
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
             {error}
           </Alert>
         )}
 
-        {/* Calendar Status */}
-        <Box sx={{ mb: 4 }}>
-          <CalendarStatus />
-        </Box>
+        <CalendarStatus />
 
-        {/* Header */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          mb: 3 
-        }}>
-          <Typography variant="h4" fontWeight="bold">
+        <Box sx={{ mt: 4, mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h4" component="h1">
             My Bookings
           </Typography>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={loadBookings}
-            disabled={loading}
-            size="small"
-          >
-            Refresh
-          </Button>
         </Box>
 
-        {/* Booking List */}
         <BookingList
           bookings={bookings}
           onCancel={handleCancelBooking}
+          onRefresh={loadBookings}
           loading={loading}
         />
-      </Container>
 
-      {/* Floating Action Button */}
-      <Fab
-        color="primary"
-        aria-label="add booking"
-        onClick={() => setShowForm(true)}
-        sx={{
-          position: 'fixed',
-          bottom: 24,
-          right: 24,
-          zIndex: 1000,
-        }}
-      >
-        <AddIcon />
-      </Fab>
-
-      {/* Booking Form Dialog */}
-      <BookingForm
-        open={showForm}
-        onClose={() => setShowForm(false)}
-        onSubmit={handleCreateBooking}
-        loading={loading}
-      />
-
-      {/* Success Snackbar */}
-      <Snackbar
-        open={Boolean(successMessage)}
-        autoHideDuration={4000}
-        onClose={() => setSuccessMessage(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={() => setSuccessMessage(null)} 
-          severity="success"
-          variant="filled"
-          sx={{ width: '100%' }}
+        <Fab
+          color="primary"
+          aria-label="add"
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+          }}
+          onClick={() => setShowForm(true)}
         >
-          {successMessage}
-        </Alert>
-      </Snackbar>
+          <AddIcon />
+        </Fab>
+
+        <BookingForm
+          open={showForm}
+          onClose={() => setShowForm(false)}
+          onSubmit={handleCreateBooking}
+        />
+
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          message={snackbar.message}
+        />
+      </Container>
     </Box>
   );
 }
