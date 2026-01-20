@@ -7,7 +7,31 @@
 > 🔗 **Live Demo:** Docker images available on [Docker Hub](https://hub.docker.com/u/aalbuez)  
 > 📦 **Repository:** https://github.com/AbelAlbuez/calendar-booking-platform
 
-A production-ready full-stack booking platform with intelligent conflict detection and Google Calendar synchronization. Built with modern UI/UX principles for DesignLi's Technical Lead/Advisor position.
+A production-ready full-stack booking platform with intelligent conflict detection and Google Calendar synchronization. Built with modern UI/UX principles and scalable architecture for DesignLi's Technical Lead/Advisor position.
+
+---
+
+## 📸 Screenshots
+
+<div align="center">
+
+### Login Page
+![Login Page](screenshots/Calendar%20APP%20-%20Index%20Page.png)
+*Clean authentication interface with dev mode for testing*
+
+### Dashboard - Disconnected
+![Dashboard Disconnected](screenshots/Calendar%20APP%20-%20Home%20Page%20(Disconnected).png)
+*Main dashboard showing bookings with internal conflict detection only*
+
+### Dashboard - Connected to Google Calendar
+![Dashboard Connected](screenshots/Calendar%20APP%20-%20Home%20Page%20(Connected).png)
+*Dashboard with Google Calendar integration enabled for enhanced conflict checking*
+
+### Conflict Detection in Action
+![Conflict Error](screenshots/Calendar%20APP%20-%20Conflicts%20Error.png)
+*Real-time conflict detection preventing double-booking*
+
+</div>
 
 ---
 
@@ -16,7 +40,7 @@ A production-ready full-stack booking platform with intelligent conflict detecti
 ### Core Functionality
 - 🔐 **Secure Authentication** - JWT-based auth with dedicated login page
 - 📅 **Smart Booking Management** - Create, view, and cancel bookings with real-time validation
-- 🔍 **Intelligent Conflict Detection** - Prevents double-booking automatically
+- 🔍 **Intelligent Conflict Detection** - Prevents double-booking with proper overlap algorithm
 - 🗓️ **Google Calendar Integration** - Real-time synchronization with personal calendar
 - 🚫 **Fail-Closed Security** - Rejects bookings if calendar verification fails
 
@@ -34,6 +58,7 @@ A production-ready full-stack booking platform with intelligent conflict detecti
 - 🧪 **Comprehensive Testing** - Unit and integration tests with high coverage
 - 📚 **Professional Documentation** - Complete API docs and setup guides
 - 🔄 **Database Management** - Easy reset and migration tools
+- 🏗️ **Scalable Architecture** - Monorepo, modular design, type-safe
 
 ---
 
@@ -44,7 +69,7 @@ A production-ready full-stack booking platform with intelligent conflict detecti
 **No setup required! Pull and run pre-built images:**
 
 ```bash
-# Pull images from Docker Hub
+# Pull images
 docker pull aalbuez/calendar-booking-api:latest
 docker pull aalbuez/calendar-booking-web:latest
 
@@ -52,50 +77,58 @@ docker pull aalbuez/calendar-booking-web:latest
 curl -O https://raw.githubusercontent.com/AbelAlbuez/calendar-booking-platform/main/docker-compose.prod.yml
 docker compose -f docker-compose.prod.yml up -d
 
-# Access the application
+# Or run manually
+docker run -d -p 3001:3001 --name calendar-api \
+  -e DATABASE_URL="file:/data/dev.db" \
+  -e JWT_SECRET="your-secret" \
+  -v $(pwd)/data:/data \
+  aalbuez/calendar-booking-api:latest
+
+docker run -d -p 3000:3000 --name calendar-web \
+  -e NEXT_PUBLIC_API_URL="http://localhost:3001/api" \
+  aalbuez/calendar-booking-web:latest
+
+# Access the app
 open http://localhost:3000
 ```
 
 **Docker Hub Links:**
-- Backend API: https://hub.docker.com/r/aalbuez/calendar-booking-api
-- Frontend Web: https://hub.docker.com/r/aalbuez/calendar-booking-web
+- Backend: https://hub.docker.com/r/aalbuez/calendar-booking-api
+- Frontend: https://hub.docker.com/r/aalbuez/calendar-booking-web
 
 ### Option 2: Local Docker Build (5 minutes)
 
 ```bash
-# Clone and build
 git clone https://github.com/AbelAlbuez/calendar-booking-platform.git
 cd calendar-booking-platform
 docker compose up -d --build
-
-# Access at http://localhost:3000
 ```
+
+Access: http://localhost:3000
 
 ### Option 3: Local Development (10 minutes)
 
 ```bash
-# 1. Clone repository
+# 1. Clone & Install
 git clone https://github.com/AbelAlbuez/calendar-booking-platform.git
 cd calendar-booking-platform
-
-# 2. Install dependencies
 npm install
 
-# 3. Setup environment variables
+# 2. Setup environment variables
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
-# Edit .env files with your configuration
+# Edit .env files with your values
 
-# 4. Setup database
+# 3. Setup database
 cd apps/api
 npx prisma migrate dev
 npx prisma generate
 cd ../..
 
-# 5. Start development servers
+# 4. Start servers
 npm run dev
 
-# Access at http://localhost:3000
+# Access: http://localhost:3000
 ```
 
 ---
@@ -141,7 +174,7 @@ npm run dev
 - ✅ **Frontend Application** - Next.js 14 with Material-UI
 - ✅ **Modern UI/UX** - Modal dialogs, FAB, rich cards, and animations
 - ✅ **Google Calendar Integration** - OAuth 2.0 with real-time sync
-- ✅ **Conflict Detection** - Internal database + Google Calendar checks
+- ✅ **Conflict Detection** - Internal database + Google Calendar with proper overlap algorithm
 - ✅ **JWT Authentication** - Secure token-based authentication
 - ✅ **User Management** - Dedicated login page with logout functionality
 - ✅ **Docker Containerization** - Multi-stage builds with optimizations
@@ -201,12 +234,7 @@ calendar-booking-platform/
 │   └── web/                    # Next.js Frontend
 │       ├── src/
 │       │   ├── components/     # React components
-│       │   │   ├── BookingForm.tsx
-│       │   │   ├── BookingList.tsx
-│       │   │   └── CalendarStatus.tsx
 │       │   ├── pages/          # Next.js pages
-│       │   │   ├── index.tsx   # Main dashboard
-│       │   │   └── login.tsx   # Login page
 │       │   ├── services/       # API client
 │       │   └── styles/         # Global styles
 │       └── Dockerfile
@@ -216,11 +244,9 @@ calendar-booking-platform/
 │
 ├── .github/
 │   └── workflows/              # CI/CD pipelines
-│       ├── pr-validation.yml   # Lint, test, build
-│       └── deploy.yml          # Docker Hub deployment
 │
+├── screenshots/                # Application screenshots
 ├── docker-compose.yml          # Local development
-├── docker-compose.prod.yml     # Production deployment
 └── package.json                # Monorepo configuration
 ```
 
@@ -265,7 +291,6 @@ NEXT_PUBLIC_API_URL="http://localhost:3001/api"
    - Application type: "Web application"
    - Authorized redirect URIs:
      - `http://localhost:3000/auth/google/callback`
-     - Add production URL if deploying
 
 4. **Add credentials to .env**
 
@@ -376,8 +401,7 @@ Content-Type: application/json
   "startUtc": "2026-01-22T14:00:00.000Z",
   "endUtc": "2026-01-22T15:00:00.000Z",
   "status": "Active",
-  "createdAt": "2026-01-19T23:00:00.000Z",
-  "updatedAt": "2026-01-19T23:00:00.000Z"
+  "createdAt": "2026-01-19T23:00:00.000Z"
 }
 ```
 
@@ -385,77 +409,8 @@ Content-Type: application/json
 ```json
 {
   "statusCode": 409,
-  "message": "Booking conflicts with your existing booking",
+  "message": "Booking conflicts with existing booking",
   "conflictType": "internal"
-}
-```
-
-**Google Calendar Conflict (409):**
-```json
-{
-  "statusCode": 409,
-  "message": "Booking conflicts with your Google Calendar",
-  "conflictType": "google_calendar"
-}
-```
-</details>
-
-<details>
-<summary><b>GET /bookings - List Bookings</b></summary>
-
-**Request:**
-```bash
-GET /api/bookings?status=Active
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-```json
-[
-  {
-    "id": "uuid-1",
-    "userId": "user-uuid",
-    "title": "Team Standup",
-    "startUtc": "2026-01-22T14:00:00.000Z",
-    "endUtc": "2026-01-22T15:00:00.000Z",
-    "status": "Active",
-    "createdAt": "2026-01-19T23:00:00.000Z",
-    "updatedAt": "2026-01-19T23:00:00.000Z"
-  },
-  {
-    "id": "uuid-2",
-    "userId": "user-uuid",
-    "title": "Client Meeting",
-    "startUtc": "2026-01-23T10:00:00.000Z",
-    "endUtc": "2026-01-23T11:00:00.000Z",
-    "status": "Active",
-    "createdAt": "2026-01-19T22:00:00.000Z",
-    "updatedAt": "2026-01-19T22:00:00.000Z"
-  }
-]
-```
-</details>
-
-<details>
-<summary><b>DELETE /bookings/:id - Cancel Booking</b></summary>
-
-**Request:**
-```bash
-DELETE /api/bookings/uuid-1
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-```json
-{
-  "id": "uuid-1",
-  "userId": "user-uuid",
-  "title": "Team Standup",
-  "startUtc": "2026-01-22T14:00:00.000Z",
-  "endUtc": "2026-01-22T15:00:00.000Z",
-  "status": "Cancelled",
-  "createdAt": "2026-01-19T23:00:00.000Z",
-  "updatedAt": "2026-01-19T23:15:00.000Z"
 }
 ```
 </details>
@@ -463,8 +418,6 @@ Authorization: Bearer <token>
 ---
 
 ## 🧪 Testing
-
-### Run Tests
 
 ```bash
 # Run all tests
@@ -482,18 +435,6 @@ cd apps/api
 npm run test:watch
 ```
 
-### Test Coverage
-
-- **Backend:**
-  - Unit tests for services and controllers
-  - Integration tests for API endpoints
-  - E2E tests for complete workflows
-  
-- **Frontend:**
-  - Component tests with React Testing Library
-  - Integration tests for user flows
-  - API client mocking
-
 ---
 
 ## 🐳 Docker Deployment
@@ -501,79 +442,29 @@ npm run test:watch
 ### Using Pre-built Images (Recommended)
 
 ```bash
-# 1. Pull latest images
+# Pull latest images
 docker pull aalbuez/calendar-booking-api:latest
 docker pull aalbuez/calendar-booking-web:latest
 
-# 2. Create docker-compose.prod.yml (if not exists)
-cat > docker-compose.prod.yml << 'EOF'
-version: '3.8'
-
-services:
-  api:
-    image: aalbuez/calendar-booking-api:latest
-    ports:
-      - "3001:3001"
-    environment:
-      - DATABASE_URL=file:/data/dev.db
-      - JWT_SECRET=your-production-secret
-      - CORS_ORIGIN=http://localhost:3000
-    volumes:
-      - ./data:/data
-
-  web:
-    image: aalbuez/calendar-booking-web:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
-    depends_on:
-      - api
-EOF
-
-# 3. Start services
+# Run with docker-compose
 docker compose -f docker-compose.prod.yml up -d
 
-# 4. View logs
+# View logs
 docker compose -f docker-compose.prod.yml logs -f
 
-# 5. Stop services
+# Stop services
 docker compose -f docker-compose.prod.yml down
 ```
 
 ### Building Locally
 
 ```bash
-# Build and start all services
+# Build and start
 docker compose up -d --build
-
-# View logs
-docker compose logs -f
-
-# Stop all services
-docker compose down
 
 # Rebuild specific service
 docker compose up -d --build api
 docker compose up -d --build web
-```
-
-### Individual Container Commands
-
-```bash
-# Backend API
-docker build -f apps/api/Dockerfile -t calendar-booking-api .
-docker run -p 3001:3001 \
-  -e DATABASE_URL="file:/data/dev.db" \
-  -e JWT_SECRET="your-secret" \
-  -v $(pwd)/data:/data \
-  calendar-booking-api
-
-# Frontend Web
-docker build -f apps/web/Dockerfile -t calendar-booking-web .
-docker run -p 3000:3000 \
-  -e NEXT_PUBLIC_API_URL="http://localhost:3001/api" \
-  calendar-booking-web
 ```
 
 ---
@@ -582,17 +473,15 @@ docker run -p 3000:3000 \
 
 ### Automated Workflows
 
-The project includes two main GitHub Actions workflows:
-
 #### 1. PR Validation (`.github/workflows/pr-validation.yml`)
 
-Runs on every pull request and push to `main` branch:
+Runs on every pull request and push:
 
-- ✅ **Linting** - ESLint checks (non-blocking warnings)
-- ✅ **Type Checking** - TypeScript compilation (non-blocking)
-- ✅ **Unit Tests** - Jest test suites (non-blocking for gradual improvement)
+- ✅ **Linting** - ESLint checks
+- ✅ **Type Checking** - TypeScript compilation
+- ✅ **Unit Tests** - Jest test suites
 - ✅ **Build Verification** - Backend and frontend builds
-- ✅ **Docker Build Test** - Validates Dockerfile configurations
+- ✅ **Docker Build Test** - Validates Dockerfiles
 
 #### 2. Docker Hub Deployment (`.github/workflows/deploy.yml`)
 
@@ -601,16 +490,8 @@ Runs on pushes to `main` branch:
 - ✅ **Build Docker Images** - Multi-stage optimized builds
 - ✅ **Push to Docker Hub** - Automated registry upload
 - ✅ **Version Tagging** - Git SHA and `latest` tags
-- ✅ **Deployment Logs** - Detailed action outputs
 
-### View Workflows
-
-Monitor CI/CD status: https://github.com/AbelAlbuez/calendar-booking-platform/actions
-
-### Docker Hub Images
-
-- Backend: https://hub.docker.com/r/aalbuez/calendar-booking-api
-- Frontend: https://hub.docker.com/r/aalbuez/calendar-booking-web
+**View workflows:** https://github.com/AbelAlbuez/calendar-booking-platform/actions
 
 ---
 
@@ -618,33 +499,31 @@ Monitor CI/CD status: https://github.com/AbelAlbuez/calendar-booking-platform/ac
 
 ```bash
 # Development
-npm run dev              # Start all services in watch mode
+npm run dev              # Start all services
 npm run dev:api          # Backend only
 npm run dev:web          # Frontend only
 
 # Building
-npm run build            # Build all packages
+npm run build            # Build all
 npm run build:api        # Backend only
 npm run build:web        # Frontend only
 
 # Testing
 npm run test             # All tests
-npm run test:cov         # With coverage report
-npm run test:watch       # Watch mode for development
-npm run test:api         # Backend tests only
-npm run test:web         # Frontend tests only
+npm run test:cov         # With coverage
+npm run test:watch       # Watch mode
 
 # Code Quality
-npm run lint             # Run ESLint on all packages
-npm run typecheck        # TypeScript compilation check
-npm run format           # Format code with Prettier
+npm run lint             # Lint code
+npm run typecheck        # Type check
+npm run format           # Format code
 
-# Database Management
-npm run db:reset         # Reset database (removes all data)
+# Database
+npm run db:reset         # Reset database
 cd apps/api
-npx prisma studio        # Open Prisma Studio GUI
-npx prisma migrate dev   # Create new migration
-npx prisma generate      # Regenerate Prisma Client
+npx prisma studio        # GUI for database
+npx prisma migrate dev   # Create migration
+npx prisma generate      # Regenerate client
 ```
 
 ---
@@ -653,168 +532,30 @@ npx prisma generate      # Regenerate Prisma Client
 
 ### Intelligent Conflict Detection
 
-The system prevents double-booking through multiple security layers:
+The system prevents double-booking through multiple layers:
 
-1. **Internal Database Check**
-   - Validates against existing bookings in the system
-   - Instant verification with efficient database queries
-   - Always available, no external dependencies
+1. **Internal Database Check** - Validates against existing bookings
+2. **Google Calendar Check** - Verifies no conflicts with proper overlap algorithm: `(eventStart < bookingEnd) AND (eventEnd > bookingStart)`
+3. **Fail-Closed Policy** - If calendar verification fails, booking is rejected (security-first)
 
-2. **Google Calendar Check**
-   - Real-time verification against user's Google Calendar
-   - OAuth 2.0 secure authentication
-   - Respects calendar privacy settings
+### Development Login
 
-3. **Fail-Closed Security Policy**
-   - If Google Calendar verification fails → Booking is rejected
-   - Prevents accidental double-booking during API outages
-   - Security-first approach to protect user schedules
+For testing without Google OAuth setup:
 
-### Authentication Flow
-
-**Development Mode:**
-- Direct login with email and name
-- No Google OAuth configuration required
-- Perfect for testing and development
-- JWT token generation for API access
-
-**Production Mode:**
-- Full OAuth 2.0 flow with Google
-- Secure token exchange
-- Calendar permission requests
-- Automatic user profile creation
+```bash
+POST /api/auth/dev-login
+{
+  "email": "reviewer@example.com",
+  "name": "Reviewer"
+}
+```
 
 ### Google Calendar Integration
 
-- **Read-Only Access**: Application only reads calendar events
-- **Conflict Detection**: Checks for overlapping events
-- **Privacy Respected**: Only checks for conflicts, doesn't read event details
-- **Optional Feature**: Application works without calendar connection
-- **Token Management**: Secure storage and automatic refresh
-
----
-
-## 🤝 For Reviewers
-
-### Quick Test Flow (5 Minutes)
-
-#### 1. **Start the Application**
-
-**Recommended: Docker Hub (fastest)**
-```bash
-docker pull aalbuez/calendar-booking-api:latest && \
-docker pull aalbuez/calendar-booking-web:latest && \
-docker run -d -p 3001:3001 --name api \
-  -e DATABASE_URL="file:/data/dev.db" \
-  -e JWT_SECRET="demo-secret-key" \
-  aalbuez/calendar-booking-api:latest && \
-docker run -d -p 3000:3000 --name web \
-  -e NEXT_PUBLIC_API_URL="http://localhost:3001/api" \
-  aalbuez/calendar-booking-web:latest && \
-echo "✅ App ready at http://localhost:3000"
-```
-
-**Alternative: Local build**
-```bash
-git clone https://github.com/AbelAlbuez/calendar-booking-platform.git
-cd calendar-booking-platform
-docker compose up -d --build
-```
-
-#### 2. **Login to the Application**
-
-- Open http://localhost:3000
-- You'll be redirected to the login page
-- Enter any email (e.g., `reviewer@designli.co`)
-- Enter any name (e.g., `Reviewer`)
-- Click "Login"
-- You'll be redirected to the dashboard
-
-#### 3. **Create Bookings**
-
-- Click the **blue "+" FAB button** (bottom-right corner)
-- A modal dialog will appear
-- Fill in booking details:
-  - **Title**: "Team Standup"
-  - **Start**: Tomorrow at 10:00 AM
-  - **End**: Tomorrow at 11:00 AM
-- Notice the **duration calculator** showing "60 minutes"
-- Click **"Create Booking"**
-- Success snackbar appears
-- Booking card is displayed with status chip
-
-#### 4. **Test Conflict Detection**
-
-- Click the FAB button again
-- Try to create an overlapping booking:
-  - **Title**: "Client Meeting"
-  - **Start**: Tomorrow at 10:30 AM (overlaps with previous)
-  - **End**: Tomorrow at 11:30 AM
-- Click "Create Booking"
-- **Conflict warning appears** in red
-- Booking is prevented
-
-#### 5. **Cancel a Booking**
-
-- Find any active booking in the list
-- Click the **trash icon** on the right
-- A confirmation dialog appears with booking details
-- Click **"Yes, Cancel Booking"**
-- Success snackbar appears
-- Booking status changes or is removed
-
-#### 6. **Test Google Calendar Integration** (Optional)
-
-- Click **"Connect Google Calendar"** (if configured)
-- Authorize with your Google account
-- Create a booking during a time when you have a Google Calendar event
-- System will detect the conflict and prevent the booking
-- Disconnect by clicking **"Disconnect"**
-
-### What to Look For
-
-**UI/UX:**
-- ✅ Clean, modern Material-UI design
-- ✅ Smooth animations and transitions
-- ✅ Responsive layout on different screen sizes
-- ✅ Clear loading states
-- ✅ Helpful error messages
-- ✅ Intuitive navigation
-
-**Functionality:**
-- ✅ No hardcoded user data (dedicated login page)
-- ✅ Real-time form validation
-- ✅ Conflict detection works correctly
-- ✅ Bookings persist after page refresh
-- ✅ User can logout and login again
-
-**Code Quality:**
-- ✅ TypeScript throughout
-- ✅ Clean architecture (NestJS modules)
-- ✅ Proper error handling
-- ✅ Docker-ready configuration
-- ✅ CI/CD pipeline with GitHub Actions
-
----
-
-## 📚 Additional Resources
-
-### Documentation
-
-- [API Endpoints](docs/api.md) - Detailed API documentation
-- [Architecture](docs/architecture.md) - System design and patterns
-- [Deployment Guide](docs/deployment.md) - Production deployment instructions
-- [Contributing Guide](CONTRIBUTING.md) - Guidelines for contributors
-
-### External Links
-
-- **Docker Images**
-  - [Backend API](https://hub.docker.com/r/aalbuez/calendar-booking-api)
-  - [Frontend Web](https://hub.docker.com/r/aalbuez/calendar-booking-web)
-- **GitHub Repository**
-  - [Source Code](https://github.com/AbelAlbuez/calendar-booking-platform)
-  - [GitHub Actions](https://github.com/AbelAlbuez/calendar-booking-platform/actions)
-  - [Issues](https://github.com/AbelAlbuez/calendar-booking-platform/issues)
+- OAuth 2.0 flow for secure authorization
+- Real-time event conflict checking with proper overlap detection
+- Respects user privacy (fail-closed)
+- Optional: Works without Google Calendar connection
 
 ---
 
@@ -857,6 +598,324 @@ docker compose up -d --build
 
 ---
 
+## 🏗️ Architecture Decisions
+
+### Backend Architecture
+
+#### Monorepo Structure with npm Workspaces
+
+**Decision:** Single repository with multiple packages (`apps/api`, `apps/web`, `packages/shared`).
+
+**Rationale:**
+- Shared TypeScript types between frontend/backend without duplication
+- Simplified dependency management and versioning
+- Easier to maintain consistency across codebase
+- Single CI/CD pipeline for entire stack
+
+**Alternative:** Separate repositories | **Why Rejected:** Requires duplicating types, complicates deployment
+
+---
+
+#### Prisma ORM over TypeORM
+
+**Decision:** Use Prisma for database access and migrations.
+
+**Rationale:**
+- Type-safe database client generated from schema
+- Intuitive migration system with automatic SQL generation
+- Excellent TypeScript integration with autocomplete
+- Better developer experience than raw SQL or TypeORM
+
+**Alternative:** TypeORM or raw SQL | **Why Rejected:** TypeORM has weaker typing, raw SQL lacks type safety
+
+---
+
+#### JWT-Based Authentication
+
+**Decision:** Stateless JWT tokens stored in localStorage.
+
+**Rationale:**
+- Stateless - no server-side session storage required
+- Scalable across multiple API instances
+- Simple to implement and validate
+- Works seamlessly with SPA architecture
+
+**Alternative:** Session-based auth | **Why Rejected:** Requires session storage, harder to scale
+
+---
+
+#### Fail-Closed Security Policy
+
+**Decision:** Reject bookings if Google Calendar verification fails.
+
+**Rationale:**
+- Prevents accidental double-booking during API outages
+- Security-first approach protects user schedules
+- Users must explicitly disconnect calendar to bypass checking
+- Better UX than silently failing and allowing conflicts
+
+**Alternative:** Fail-open (allow on error) | **Why Rejected:** Risk of double-booking, undermines core feature
+
+---
+
+#### Time Overlap Detection Algorithm
+
+**Decision:** Proper overlap validation: `(eventStart < bookingEnd) AND (eventEnd > bookingStart)`
+
+**Rationale:**
+- Mathematically correct overlap detection
+- Prevents false positives (was the original bug we fixed)
+- Handles all edge cases (before, after, during, contains)
+- Industry-standard algorithm
+
+**Alternative:** Simple range check | **Why Rejected:** Produces false positives
+
+---
+
+#### Modular NestJS Architecture
+
+**Decision:** Separate modules for Auth, Bookings, Calendar, Users, Common.
+
+**Rationale:**
+- Clear separation of concerns
+- Each module is independently testable
+- Easy to scale and add features
+- Follows SOLID principles and NestJS best practices
+
+**Alternative:** Monolithic single module | **Why Rejected:** Difficult to maintain, poor testability
+
+---
+
+### Frontend Architecture
+
+#### Client-Side State Management
+
+**Decision:** React hooks (useState, useEffect) without Redux.
+
+**Rationale:**
+- Sufficient for application complexity
+- Simpler codebase, less boilerplate
+- Faster development with built-in React features
+
+**Alternative:** Redux or Zustand | **Why Rejected:** Overkill for this application size
+
+---
+
+#### API Service Layer Pattern
+
+**Decision:** Centralized API service (`apiService.ts`) with typed methods.
+
+**Rationale:**
+- Single source of truth for API interactions
+- Easy to add authentication headers globally
+- Type-safe API calls with TypeScript
+- Simplifies error handling and retry logic
+
+**Alternative:** Direct fetch calls | **Why Rejected:** Duplicated code, inconsistent error handling
+
+---
+
+### DevOps & Infrastructure
+
+#### Multi-Stage Docker Builds
+
+**Decision:** Separate build and runtime stages in Dockerfiles.
+
+**Rationale:**
+- Smaller final image size (~100MB vs ~1GB)
+- Faster deployment and pull times
+- Excludes dev dependencies from production
+- Industry best practice
+
+**Alternative:** Single-stage build | **Why Rejected:** Large image size, includes unnecessary dependencies
+
+---
+
+#### Docker Hub for Image Distribution
+
+**Decision:** Pre-built images on Docker Hub, not building on deploy.
+
+**Rationale:**
+- Faster deployment (pull vs build)
+- Consistent images across environments
+- Easy for reviewers to test without building
+- Professional deployment workflow
+
+**Alternative:** Build on deployment | **Why Rejected:** Slower, inconsistent builds
+
+---
+
+#### GitHub Actions CI/CD
+
+**Decision:** Automated testing and deployment via GitHub Actions.
+
+**Rationale:**
+- Native GitHub integration
+- Free for public repositories
+- Easy to configure with YAML
+- Automated Docker Hub pushes on merge to main
+
+**Alternative:** Jenkins or CircleCI | **Why Rejected:** More complex setup, potential costs
+
+---
+
+### Database Architecture
+
+#### SQLite for Development, PostgreSQL-Ready
+
+**Decision:** SQLite with Prisma schema compatible with PostgreSQL.
+
+**Rationale:**
+- Zero configuration for local development
+- Fast iteration and testing
+- Easy to reset with `npm run db:reset`
+- Migration to PostgreSQL requires only connection string change
+
+**Alternative:** PostgreSQL locally | **Why Rejected:** Additional setup complexity
+
+---
+
+#### UTC Timestamps for All Dates
+
+**Decision:** Store all dates in UTC, convert in UI.
+
+**Rationale:**
+- Avoids timezone confusion
+- Consistent data storage
+- Easy to convert to user's timezone in frontend
+- Standard practice for international applications
+
+**Alternative:** Store in user's timezone | **Why Rejected:** Complicated queries, DST issues
+
+---
+
+#### Soft Delete with Status Enum
+
+**Decision:** Mark bookings as "Cancelled" instead of deleting rows.
+
+**Rationale:**
+- Audit trail for cancelled bookings
+- Allows analytics on cancellation patterns
+- Can restore accidentally cancelled bookings
+- Maintains referential integrity
+
+**Alternative:** Hard delete | **Why Rejected:** Lost data, no audit trail
+
+---
+
+### Security & Code Quality
+
+#### TypeScript Strict Mode
+
+**Decision:** Enable `strict: true` in all `tsconfig.json` files.
+
+**Rationale:**
+- Catches bugs at compile time
+- Better IDE autocomplete and IntelliSense
+- Forces explicit typing, improving code quality
+
+**Alternative:** Loose configuration | **Why Rejected:** Loses type safety benefits
+
+---
+
+### Architecture Summary
+
+Every architectural decision balances:
+- **Developer Experience** - Fast development, easy debugging
+- **Production Readiness** - Scalable, secure, maintainable
+- **Type Safety** - Catch bugs at compile time
+- **Industry Standards** - Use proven patterns and tools
+
+The result is a **clean, scalable architecture** that's easy to understand, test, and deploy.
+
+---
+
+## 🤝 For Reviewers
+
+### Quick Test Flow (5 Minutes)
+
+#### 1. **Start the Application**
+
+**Recommended: Docker Hub (fastest)**
+```bash
+docker pull aalbuez/calendar-booking-api:latest && \
+docker pull aalbuez/calendar-booking-web:latest && \
+docker run -d -p 3001:3001 --name api \
+  -e DATABASE_URL="file:/data/dev.db" \
+  -e JWT_SECRET="demo-secret-key" \
+  aalbuez/calendar-booking-api:latest && \
+docker run -d -p 3000:3000 --name web \
+  -e NEXT_PUBLIC_API_URL="http://localhost:3001/api" \
+  aalbuez/calendar-booking-web:latest && \
+echo "✅ App ready at http://localhost:3000"
+```
+
+#### 2. **Login to the Application**
+
+- Open http://localhost:3000
+- Enter any email (e.g., `reviewer@designli.co`)
+- Enter any name (e.g., `Reviewer`)
+- Click "Login"
+
+#### 3. **Create Bookings**
+
+- Click the blue "+" FAB button (bottom-right)
+- Fill in booking details
+- Notice the duration calculator
+- Click "Create Booking"
+
+#### 4. **Test Conflict Detection**
+
+- Try to create an overlapping booking
+- System will prevent it with clear error message
+
+#### 5. **Cancel a Booking**
+
+- Click trash icon on any booking
+- Confirm in dialog
+- Booking status changes to "Cancelled"
+
+### What to Look For
+
+**UI/UX:**
+- ✅ Clean, modern Material-UI design
+- ✅ Smooth animations and transitions
+- ✅ Clear loading states and error messages
+- ✅ Intuitive navigation
+
+**Functionality:**
+- ✅ Dedicated login page (no hardcoded users)
+- ✅ Real-time form validation
+- ✅ Conflict detection works correctly
+- ✅ User can logout and login again
+
+**Code Quality:**
+- ✅ TypeScript throughout
+- ✅ Clean architecture
+- ✅ Docker-ready
+- ✅ CI/CD pipeline
+
+---
+
+## 📚 Additional Resources
+
+### Documentation
+
+- API Endpoints - See API Documentation section above
+- Architecture - See Architecture and Architecture Decisions sections
+- Deployment Guide - See Docker Deployment section
+
+### External Links
+
+- **Docker Images**
+  - [Backend API](https://hub.docker.com/r/aalbuez/calendar-booking-api)
+  - [Frontend Web](https://hub.docker.com/r/aalbuez/calendar-booking-web)
+- **GitHub Repository**
+  - [Source Code](https://github.com/AbelAlbuez/calendar-booking-platform)
+  - [GitHub Actions](https://github.com/AbelAlbuez/calendar-booking-platform/actions)
+
+---
+
 ## 🔮 Future Enhancements
 
 Potential features for future iterations:
@@ -869,8 +928,6 @@ Potential features for future iterations:
 - [ ] **Booking Templates** - Pre-defined meeting templates
 - [ ] **Analytics Dashboard** - Booking statistics and insights
 - [ ] **Mobile Apps** - Native iOS and Android applications
-- [ ] **Webhook Support** - Real-time integrations with other services
-- [ ] **Advanced Permissions** - Role-based access control
 
 ---
 
