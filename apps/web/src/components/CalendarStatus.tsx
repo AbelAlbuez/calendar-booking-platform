@@ -1,37 +1,39 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, Typography, Chip, Box, Button } from '@mui/material';
+import { 
+  Card, 
+  CardContent, 
+  Typography, 
+  Chip, 
+  Box, 
+  Button,
+  Alert,
+  AlertTitle
+} from '@mui/material';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { apiService } from '@/services/api.service';
-
-declare global {
-  interface Window {
-    google?: any;
-  }
-}
 
 export function CalendarStatus() {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   useEffect(() => {
     loadStatus();
-    loadGoogleScript();
   }, []);
-
-  const loadGoogleScript = () => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    document.body.appendChild(script);
-  };
 
   const loadStatus = async () => {
     try {
       const status = await apiService.getCalendarStatus();
       setConnected(status.connected);
-    } catch (err) {
+      setError(null);
+    } catch (err: any) {
       setConnected(false);
+      // Check if it's a token expiration error
+      if (err.response?.status === 401 || err.message?.includes('expired')) {
+        setError('expired');
+      }
     } finally {
       setLoading(false);
     }
@@ -39,7 +41,6 @@ export function CalendarStatus() {
 
   const handleConnect = () => {
     setConnecting(true);
-
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     
     if (!clientId) {
@@ -48,7 +49,6 @@ export function CalendarStatus() {
       return;
     }
 
-    // OAuth 2.0 flow
     const redirectUri = `${window.location.origin}/auth/google/callback`;
     const scope = 'https://www.googleapis.com/auth/calendar.events';
     const responseType = 'code';
@@ -64,18 +64,73 @@ export function CalendarStatus() {
     window.location.href = authUrl;
   };
 
+  const handleDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect Google Calendar? You will only check internal conflicts.')) {
+      return;
+    }
+
+    try {
+      setDisconnecting(true);
+      await apiService.disconnectCalendar();
+      setConnected(false);
+      setError(null);
+      // Reload the page to clear any stale state
+      window.location.reload();
+    } catch (err: any) {
+      alert('Failed to disconnect calendar: ' + (err.message || 'Unknown error'));
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   if (loading) return null;
+
+  // Show warning if token is expired
+  if (error === 'expired' && connected) {
+    return (
+      <Alert 
+        severity="warning" 
+        icon={<WarningAmberIcon />}
+        action={
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={handleConnect}
+              disabled={connecting}
+            >
+              Reconnect
+            </Button>
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+            >
+              Disconnect
+            </Button>
+          </Box>
+        }
+      >
+        <AlertTitle>Google Calendar Token Expired</AlertTitle>
+        Your Google Calendar connection has expired. Please reconnect to enable calendar conflict checking, or disconnect to only check internal conflicts.
+      </Alert>
+    );
+  }
 
   return (
     <Card>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="body1">Google Calendar:</Typography>
+          <Typography variant="body1" fontWeight="medium">
+            Google Calendar:
+          </Typography>
           <Chip
             label={connected ? 'Connected' : 'Not Connected'}
             color={connected ? 'success' : 'default'}
             size="small"
           />
+          
           {!connected && (
             <>
               <Button
@@ -86,15 +141,27 @@ export function CalendarStatus() {
               >
                 {connecting ? 'Connecting...' : 'Connect Calendar'}
               </Button>
-              <Typography variant="caption" color="textSecondary">
+              <Typography variant="caption" color="text.secondary">
                 Bookings will only check internal conflicts
               </Typography>
             </>
           )}
-          {connected && (
-            <Typography variant="caption" color="textSecondary">
-              Checking both internal and Google Calendar conflicts
-            </Typography>
+          
+          {connected && !error && (
+            <>
+              <Typography variant="caption" color="text.secondary">
+                Checking both internal and Google Calendar conflicts
+              </Typography>
+              <Button
+                variant="text"
+                size="small"
+                onClick={handleDisconnect}
+                disabled={disconnecting}
+                color="error"
+              >
+                {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            </>
           )}
         </Box>
       </CardContent>

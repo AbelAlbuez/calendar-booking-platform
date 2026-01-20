@@ -66,6 +66,10 @@ class ApiService {
     const { data } = await this.client.get<CalendarStatusDto>('/calendar/status');
     return data;
   }
+
+  async disconnectCalendar(): Promise<void> {
+    await this.client.delete('/calendar/disconnect');
+  }
 }
 
 export const apiService = new ApiService();
